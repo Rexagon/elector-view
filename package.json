@@ -1,0 +1,36 @@
+{
+  "name": "elector-view",
+  "version": "0.0.1",
+  "private": true,
+  "engines": {
+    "node": ">=14",
+    "npm": ">=6"
+  },
+  "scripts": {
+    "start": "npx webpack serve --mode development --config webpack.config.ts",
+    "build": "npx webpack --mode production --config webpack.config.ts"
+  },
+  "devDependencies": {
+    "@types/mini-css-extract-plugin": "^2.4.0",
+    "@types/react": "^17.0.30",
+    "@types/react-dom": "^17.0.9",
+    "@types/webpack": "^5.28.0",
+    "@types/webpack-dev-server": "^4.3.1",
+    "html-webpack-plugin": "^5.4.0",
+    "mini-css-extract-plugin": "^2.4.2",
+    "sass": "^1.43.2",
+    "sass-loader": "^12.2.0",
+    "style-loader": "^3.3.0",
+    "ts-loader": "^9.2.6",
+    "ts-node": "^10.3.0",
+    "typescript": "^4.4.4",
+    "webpack": "^5.58.2",
+    "webpack-cli": "^4.9.1",
+    "webpack-dev-server": "^4.3.1"
+  },
+  "dependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "ton-inpage-provider": "file:../ton-inpage-provider"
+  }
+}
