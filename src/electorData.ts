@@ -1,51 +1,9 @@
+import {MergeOutputObjectsArray} from 'ton-inpage-provider'
+
 export const ELECTOR_DATA_STRUCTURE = [
     {
-        type: 'map(uint32,tuple)',
+        type: 'optional(cell)',
         name: 'elect',
-        components: [
-            {
-                type: 'uint32',
-                name: 'elect_at',
-            },
-            {
-                type: 'uint32',
-                name: 'elect_close',
-            },
-            {
-                type: 'gram',
-                name: 'min_stake',
-            },
-            {
-                type: 'gram',
-                name: 'total_stake',
-            },
-            {
-                type: 'map(uint256,tuple)',
-                name: 'members',
-                components: [
-                    {
-                        type: 'gram',
-                        name: 'msg_value'
-                    },
-                    {
-                        type: 'uint32',
-                        name: 'created_at',
-                    },
-                    {
-                        type: 'uint32',
-                        name: 'max_factor',
-                    },
-                    {
-                        type: 'uint256',
-                        name: 'src_addr'
-                    },
-                    {
-                        type: 'uint256',
-                        name: 'adnl_addr'
-                    }
-                ] as const
-            }
-        ]
     },
     {
         type: 'map(uint256,gram)',
@@ -125,3 +83,59 @@ export const ELECTOR_DATA_STRUCTURE = [
     {type: 'uint32', name: 'active_id'},
     {type: 'uint256', name: 'active_hash'},
 ] as const;
+
+export const CURRENT_ELECTION_DATA = [
+    {
+        type: 'uint32',
+        name: 'elect_at',
+    },
+    {
+        type: 'uint32',
+        name: 'elect_close',
+    },
+    {
+        type: 'gram',
+        name: 'min_stake',
+    },
+    {
+        type: 'gram',
+        name: 'total_stake',
+    },
+    {
+        type: 'map(uint256,tuple)',
+        name: 'members',
+        components: [
+            {
+                type: 'gram',
+                name: 'msg_value'
+            },
+            {
+                type: 'uint32',
+                name: 'created_at',
+            },
+            {
+                type: 'uint32',
+                name: 'max_factor',
+            },
+            {
+                type: 'uint256',
+                name: 'src_addr'
+            },
+            {
+                type: 'uint256',
+                name: 'adnl_addr'
+            }
+        ] as const
+    },
+    {
+        type: 'bool',
+        name: 'failed',
+    },
+    {
+        type: 'bool',
+        name: 'finished'
+    }
+] as const;
+
+export type ElectorData = MergeOutputObjectsArray<typeof ELECTOR_DATA_STRUCTURE>
+export type CurrentElectionData = MergeOutputObjectsArray<typeof CURRENT_ELECTION_DATA>;

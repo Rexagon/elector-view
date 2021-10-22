@@ -1,14 +1,24 @@
 import * as React from 'react';
 import * as ReactDOM from "react-dom";
+import classNames from 'classnames'
 import ton, {Address, AddressLiteral, DEFAULT_PROVIDER_PROPERTIES} from 'ton-inpage-provider';
 
-import {ELECTOR_DATA_STRUCTURE} from './electorData'
+import {CURRENT_ELECTION_DATA, CurrentElectionData, ELECTOR_DATA_STRUCTURE, ElectorData} from './electorData'
+
+import Workspace from './components/Workspace'
+import Loader from './components/Loader'
+
+import './styles/main.scss';
+import {convertError} from "./utils";
 
 const ELECTOR: Address = new AddressLiteral('-1:3333333333333333333333333333333333333333333333333333333333333333');
 
 const App: React.FC = () => {
     const [hasTonProvider, setHasTonProvider] = React.useState(false);
     const [hasPermissions, setHasPermissions] = React.useState(false);
+    const [error, setError] = React.useState<string>();
+    const [electorData, setElectorData] = React.useState<ElectorData>();
+    const [currentElectionData, setCurrentElectionData] = React.useState<CurrentElectionData>();
 
     React.useEffect(() => {
         ton.ensureInitialized({
@@ -43,27 +53,66 @@ const App: React.FC = () => {
                 address: ELECTOR,
             });
             if (state == null) {
-                console.warn('Elector not found');
+                setError('Elector not found');
                 return;
             }
 
             const {data} = await ton.splitTvc(state.boc);
             if (data == null) {
-                console.warn('Elector data not found');
+                setError('Elector data not found');
                 return;
             }
 
-            const unpacked = await ton.unpackFromCell({
+            const {data: electorData} = await ton.unpackFromCell({
                 structure: ELECTOR_DATA_STRUCTURE,
                 boc: data,
                 allowPartial: false,
             });
+            setElectorData(electorData);
 
-            console.log(unpacked)
-        })().catch(console.error);
+            if (electorData.elect != null) {
+                const {data: currentElectionData} = await ton.unpackFromCell({
+                    structure: CURRENT_ELECTION_DATA,
+                    boc: electorData.elect,
+                    allowPartial: false
+                })
+                setCurrentElectionData(currentElectionData)
+            }
+        })().catch((e: any) => {
+            setError(convertError(e))
+        });
     }, [inProgress]);
 
-    return <>Has provider: {hasTonProvider ? 'true' : 'false'}, has permissions: {hasPermissions ? 'true' : 'false'}</>
+    const hasData = electorData != null;
+
+    if (error != null) {
+        return <section
+            className={classNames(
+                'section',
+                'is-fullheight',
+                'is-flex',
+                'is-flex-direction-column',
+                'is-justify-content-center',
+                'has-text-centered',
+                'has-text-danger-dark'
+            )}
+        >
+            {error}
+        </section>
+    }
+
+    if (!hasTonProvider || !hasPermissions || !hasData) {
+        return <Loader
+            hasTonProvider={hasTonProvider}
+            hasPermissions={hasPermissions}
+            hasData={hasData}
+        />
+    }
+
+    return <Workspace
+        electorData={electorData}
+        currentElectionData={currentElectionData}
+    />
 }
 
 ReactDOM.render(
