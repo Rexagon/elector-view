@@ -1,7 +1,8 @@
 import * as React from 'react';
 import * as ReactDOM from "react-dom";
 import classNames from 'classnames'
-import ton, {Address, AddressLiteral, DEFAULT_PROVIDER_PROPERTIES} from 'ton-inpage-provider';
+import {Address, AddressLiteral, ProviderRpcClient} from 'everscale-inpage-provider';
+import {EverscaleStandaloneClient} from 'everscale-standalone-client';
 
 import {CURRENT_ELECTION_DATA, CurrentElectionData, ELECTOR_DATA_STRUCTURE, ElectorData} from './electorData'
 
@@ -11,111 +12,120 @@ import Loader from './components/Loader'
 import './styles/main.scss';
 import {convertError} from "./utils";
 
+const ever = new ProviderRpcClient({
+  fallback: async () => {
+    console.log('Fallback');
+    return await EverscaleStandaloneClient.create({
+      connection: 'mainnet'
+    })
+  }
+});
+
 const ELECTOR: Address = new AddressLiteral('-1:3333333333333333333333333333333333333333333333333333333333333333');
 
 const App: React.FC = () => {
-    const [hasTonProvider, setHasTonProvider] = React.useState(false);
-    const [hasPermissions, setHasPermissions] = React.useState(false);
-    const [error, setError] = React.useState<string>();
-    const [electorData, setElectorData] = React.useState<ElectorData>();
-    const [currentElectionData, setCurrentElectionData] = React.useState<CurrentElectionData>();
+  const [hasTonProvider, setHasTonProvider] = React.useState(false);
+  const [hasPermissions, setHasPermissions] = React.useState(false);
+  const [error, setError] = React.useState<string>();
+  const [electorData, setElectorData] = React.useState<ElectorData>();
+  const [currentElectionData, setCurrentElectionData] = React.useState<CurrentElectionData>();
 
-    React.useEffect(() => {
-        ton.ensureInitialized({
-            ...DEFAULT_PROVIDER_PROPERTIES,
-            requireFullProvider: false,
-        }).then(async () => {
-            setHasTonProvider(true);
-            (await ton.subscribe('permissionsChanged')).on('data', event => {
-                setHasPermissions(event.permissions.tonClient === true);
-            })
+  React.useEffect(() => {
+    ever.ensureInitialized().then(async () => {
+      setHasTonProvider(true);
+      (await ever.subscribe('permissionsChanged')).on('data', event => {
+        setHasPermissions(event.permissions.basic === true);
+      })
 
-            const currentProviderState = await ton.getProviderState();
-            if (currentProviderState.permissions.tonClient === true) {
-                setHasPermissions(true);
-            } else {
-                await ton.requestPermissions({
-                    permissions: ['tonClient']
-                })
-            }
-        }).catch(console.error);
-    }, []);
+      const currentProviderState = await ever.getProviderState();
+      if (currentProviderState.permissions.basic === true) {
+        setHasPermissions(true);
+      } else {
+        await ever.requestPermissions({
+          permissions: ['basic']
+        })
+      }
+    }).catch(console.error);
+  }, []);
 
-    const inProgress = !hasTonProvider || !hasPermissions;
+  const inProgress = !hasTonProvider || !hasPermissions;
 
-    React.useEffect(() => {
-        if (inProgress) {
-            return;
-        }
-
-        (async () => {
-            const {state} = await ton.getFullContractState({
-                address: ELECTOR,
-            });
-            if (state == null) {
-                setError('Elector not found');
-                return;
-            }
-
-            const {data} = await ton.splitTvc(state.boc);
-            if (data == null) {
-                setError('Elector data not found');
-                return;
-            }
-
-            const {data: electorData} = await ton.unpackFromCell({
-                structure: ELECTOR_DATA_STRUCTURE,
-                boc: data,
-                allowPartial: false,
-            });
-            setElectorData(electorData);
-
-            if (electorData.elect != null) {
-                const {data: currentElectionData} = await ton.unpackFromCell({
-                    structure: CURRENT_ELECTION_DATA,
-                    boc: electorData.elect,
-                    allowPartial: false
-                })
-                setCurrentElectionData(currentElectionData)
-            }
-        })().catch((e: any) => {
-            setError(convertError(e))
-        });
-    }, [inProgress]);
-
-    const hasData = electorData != null;
-
-    if (error != null) {
-        return <section
-            className={classNames(
-                'section',
-                'is-fullheight',
-                'is-flex',
-                'is-flex-direction-column',
-                'is-justify-content-center',
-                'has-text-centered',
-                'has-text-danger-dark'
-            )}
-        >
-            {error}
-        </section>
+  React.useEffect(() => {
+    if (inProgress) {
+      return;
     }
 
-    if (!hasTonProvider || !hasPermissions || !hasData) {
-        return <Loader
-            hasTonProvider={hasTonProvider}
-            hasPermissions={hasPermissions}
-            hasData={hasData}
-        />
-    }
+    (async () => {
+      const {state} = await ever.getFullContractState({
+        address: ELECTOR,
+      });
+      if (state == null) {
+        setError('Elector not found');
+        return;
+      }
 
-    return <Workspace
-        electorData={electorData}
-        currentElectionData={currentElectionData}
+      const {data} = await ever.splitTvc(state.boc);
+      if (data == null) {
+        setError('Elector data not found');
+        return;
+      }
+
+      const {data: electorData} = await ever.unpackFromCell({
+        structure: ELECTOR_DATA_STRUCTURE,
+        boc: data,
+        allowPartial: false,
+      });
+      setElectorData(electorData);
+
+      if (electorData.elect != null) {
+        const {data: currentElectionData} = await ever.unpackFromCell({
+          structure: CURRENT_ELECTION_DATA,
+          boc: electorData.elect,
+          allowPartial: false
+        })
+        setCurrentElectionData(currentElectionData)
+      }
+
+      console.log(electorData);
+      console.log(currentElectionData);
+    })().catch((e: any) => {
+      setError(convertError(e))
+    });
+  }, [inProgress]);
+
+  const hasData = electorData != null;
+
+  if (error != null) {
+    return <section
+      className={classNames(
+        'section',
+        'is-fullheight',
+        'is-flex',
+        'is-flex-direction-column',
+        'is-justify-content-center',
+        'has-text-centered',
+        'has-text-danger-dark'
+      )}
+    >
+      {error}
+    </section>
+  }
+
+  if (!hasTonProvider || !hasPermissions || !hasData) {
+    return <Loader
+      hasTonProvider={hasTonProvider}
+      hasPermissions={hasPermissions}
+      hasData={hasData}
     />
+  }
+
+  return <Workspace
+    electorData={electorData}
+    currentElectionData={currentElectionData}
+  />
 }
 
 ReactDOM.render(
-    <React.StrictMode><App/></React.StrictMode>,
-    document.getElementById('root')
+  <React.StrictMode><App/></React.StrictMode>,
+  document.getElementById('root')
 )

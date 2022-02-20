@@ -1,4 +1,4 @@
-import {MergeOutputObjectsArray} from 'ton-inpage-provider'
+import {MergeOutputObjectsArray} from 'everscale-inpage-provider'
 
 export const ELECTOR_DATA_STRUCTURE = [
     {
